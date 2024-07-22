@@ -1,28 +1,125 @@
-curl -X GET "https://start.wa.ibmserviceengage.com/twsd/plan/current/job/abcdefg" -H "accept: application/json" -H "Authorization: Basic MjAyMTUwNjEyNjphYmNkMTIz"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export to Excel with ExcelJS</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+</head>
+<body>
+    <table id="due-now-table" class="table table-bordered">
+        <thead>
+            <tr>
+                <th class="table-primary">Product</th>
+                <th class="table-primary">Price</th>
+                <th class="table-primary">Available</th>
+                <th class="table-primary">Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="table-success">Bread</td>
+                <td class="table-success">1</td>
+                <td class="table-success">2</td>
+                <td class="table-success">3</td>
+            </tr>
+            <tr>
+                <td class="table-warning">Butter</td>
+                <td class="table-warning">4</td>
+                <td class="table-warning">5</td>
+                <td class="table-warning">6</td>
+            </tr>
+        </tbody>
+    </table>
 
-https://start.wa.ibmserviceengage.com/twsd/plan/current/job/abcdefg
+    <table id="due-later-table" class="table table-bordered">
+        <thead>
+            <tr>
+                <th class="table-info">Product</th>
+                <th class="table-info">Price</th>
+                <th class="table-info">Available</th>
+                <th class="table-info">Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="table-danger">Bread</td>
+                <td class="table-danger">7</td>
+                <td class="table-danger">8</td>
+                <td class="table-danger">9</td>
+            </tr>
+            <tr>
+                <td class="table-dark">Butter</td>
+                <td class="table-dark">14</td>
+                <td class="table-dark">15</td>
+                <td class="table-dark">16</td>
+            </tr>
+        </tbody>
+    </table>
 
-GET JOB STREAM: https://github.com/WorkloadAutomation/TWS_REST_API_Python_samples/blob/master/python/queryJS.py
+    <button onclick="exportTablesToExcel()">Export to Excel</button>
 
-#!/bin/sh
+    <script>
+        function exportTablesToExcel() {
+            var workbook = new ExcelJS.Workbook();
+            var sheet1 = workbook.addWorksheet('Due Now');
+            var sheet2 = workbook.addWorksheet('Due Later');
 
-#############################################################################
-# Licensed Materials - Property of HCL*
-# (C) Copyright HCL Technologies Ltd. 2017, 2018 All rights reserved.
-# * Trademark of HCL Technologies Limited
-#############################################################################
+            addTableToSheet(document.getElementById('due-now-table'), sheet1);
+            addTableToSheet(document.getElementById('due-later-table'), sheet2);
 
-if [  $# -ne 6 ] 
-then 
-	echo 'Usage: '$0' <tws_host> <tws_user> <password> <job_name> <workstation_name> <task_string>'
-	exit 1
-fi
+            workbook.xlsx.writeBuffer().then(function(buffer) {
+                var blob = new Blob([buffer], { type: "application/octet-stream" });
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = "tables.xlsx";
+                a.click();
+                window.URL.revokeObjectURL(url);
+            });
+        }
 
-TWS_HOST=$1
-TWS_USER=$2
-PASSWORD=$3
-JOB_NAME=$4
-WORKSTATION_NAME=$5
-TASK_STRING=$6
+        function addTableToSheet(table, sheet) {
+            var rows = table.rows;
+            for (var r = 0; r < rows.length; r++) {
+                var row = sheet.addRow(Array.from(rows[r].cells).map(cell => cell.innerText));
 
-echo `curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{"header": {"jobDefinitionKey": {"name": "'$JOB_NAME'","workstationName":"'$WORKSTATION_NAME'"},"description": "Added by REST API.","taskType": "UNIX","userLogin": "'$TWS_USER'"},"taskString": "'"$TASK_STRING"'","recoveryOption": "STOP"}' 'https://'$TWS_HOST':31116/twsd/model/jobdefinition'  --insecure -u $TWS_USER:$PASSWORD`
+                if(r!==0) {
+                    var className = rows[r].cells[3].className;
+                    var bgColor = getBackgroundColor(className);
+                    if (bgColor) {
+                        row.getCell(4).fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: bgColor }
+                        };
+                    }
+                }
+                
+                else {
+                    row.eachCell(cell => {
+                        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: '343a40' }  
+                        };
+                    });
+                } 
+            }
+        }
+
+        function getBackgroundColor(className) {
+            if (className.includes('table-primary')) return '007bff';
+            else if (className.includes('table-success')) return '28a745';
+            else if (className.includes('table-danger')) return 'dc3545';
+            else if (className.includes('table-warning')) return 'ffc107';
+            else if (className.includes('table-info')) return '17a2b8';
+            else if (className.includes('table-light')) return 'f8f9fa';
+            else if (className.includes('table-dark')) return '343a40';
+            else return null;
+        }
+    </script>
+</body>
+</html>
